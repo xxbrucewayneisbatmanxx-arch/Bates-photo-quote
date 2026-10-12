@@ -1,0 +1,9 @@
+.venv/
+leads/
+server.log
+*.log
+__pycache__/
+*.pyc
+.env
+public_url.txt
+start_public.sh
