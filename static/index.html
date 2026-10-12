@@ -1,0 +1,22 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Summit Home Services – Photo Quote</title><style>
+body{font-family:system-ui,sans-serif;max-width:640px;margin:auto;padding:16px;background:#f4f6f8;color:#1b2a3a}
+h1{color:#0b4f8a;margin-bottom:0}.card{background:#fff;border-radius:10px;padding:18px;margin:14px 0;box-shadow:0 1px 4px #0002}
+input,textarea,button{width:100%;padding:10px;margin:6px 0;font-size:16px;box-sizing:border-box;border:1px solid #ccd;border-radius:6px}
+button{background:#0b4f8a;color:#fff;border:0;font-weight:600;cursor:pointer}.b{padding:3px 10px;border-radius:12px;color:#fff;font-weight:700}
+.emergency{background:#c62828}.soon{background:#ef8c00}.routine{background:#2e7d32}small{color:#667}</style></head><body>
+<h1>Summit Home Services</h1><p>Plumbing & HVAC · Nevada, MO — Snap a photo, get a quick assessment.</p>
+<form id="f" class="card"><input name="name" placeholder="Your name" required><input name="phone" placeholder="Phone" required>
+<textarea name="description" rows="3" placeholder="What's going on? (e.g. leak under kitchen sink)"></textarea>
+<input type="file" name="photo" accept="image/*" capture="environment" required><button>Get my assessment</button></form>
+<div id="out"></div><script>
+f.onsubmit=async e=>{e.preventDefault();out.innerHTML='<div class="card">Analyzing your photo…</div>';
+const r=await fetch('/api/triage',{method:'POST',body:new FormData(f)});const d=await r.json();
+if(!r.ok){out.innerHTML='<div class="card">Sorry: '+(d.detail||'error')+'</div>';return}
+const t=d.triage,esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+out.innerHTML=`<div class="card"><h2>Likely problem</h2><p>${esc(t.likely_problem)}</p>
+<p><b>Urgency:</b> <span class="b ${esc(t.urgency)}">${esc(t.urgency).toUpperCase()}</span> ${esc(t.urgency_reason)}</p>
+<p><b>Estimated price:</b> ${esc(t.price_estimate)}</p><p><b>Next step:</b> ${esc(t.recommended_next_step)}</p>
+<ul>${(t.safety_tips||[]).map(x=>'<li>'+esc(x)+'</li>').join('')}</ul>
+<p>Thanks ${esc(d.customer.name)} — we'll call you at ${esc(d.customer.phone)} shortly.</p>
+<small>Estimates are approximate; final pricing after on-site inspection.</small></div>`}</script></body></html>
