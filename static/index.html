@@ -9,9 +9,10 @@ button{background:#0b4f8a;color:#fff;border:0;font-weight:600;cursor:pointer}.b{
 <form id="f" class="card"><input name="name" placeholder="Your name" required><input name="phone" placeholder="Phone" required>
 <textarea name="description" rows="3" placeholder="What's going on? (e.g. leak under kitchen sink)"></textarea>
 <input type="file" name="photo" accept="image/*" capture="environment" required><button>Get my assessment</button></form>
-<div id="out"></div><script>
+<div id="out"></div><script>async function shrink(file){if(!file||!file.type.startsWith('image/'))return null;const bmp=await createImageBitmap(file);const k=Math.min(1,1600/Math.max(bmp.width,bmp.height));const c=document.createElement('canvas');c.width=Math.round(bmp.width*k);c.height=Math.round(bmp.height*k);c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);return await new Promise(r=>c.toBlob(r,'image/jpeg',0.85));}</script>
+<script>
 f.onsubmit=async e=>{e.preventDefault();out.innerHTML='<div class="card">Analyzing your photo…</div>';
-const r=await fetch('/api/triage',{method:'POST',body:new FormData(f)});const d=await r.json();
+const fd=new FormData(f);try{const sm=await shrink(fd.get('photo'));if(sm)fd.set('photo',sm,'photo.jpg')}catch(_){}const r=await fetch('/api/triage',{method:'POST',body:fd});const d=await r.json();
 if(!r.ok){out.innerHTML='<div class="card">Sorry: '+(d.detail||'error')+'</div>';return}
 const t=d.triage,esc=s=>String(s??'').replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
 out.innerHTML=`<div class="card"><h2>Likely problem</h2><p>${esc(t.likely_problem)}</p>
