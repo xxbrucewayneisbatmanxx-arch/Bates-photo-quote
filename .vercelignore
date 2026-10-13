@@ -1,0 +1,7 @@
+.venv/
+leads/
+__pycache__/
+*.log
+sample_leak.jpg
+start_public.sh
+.env

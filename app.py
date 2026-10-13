@@ -7,15 +7,16 @@ from fastapi import FastAPI, File, Form, UploadFile, HTTPException, Request
 from fastapi.responses import FileResponse
 
 BASE = Path(__file__).parent
-LEADS = BASE / "leads"; LEADS.mkdir(exist_ok=True)
-BRAND = os.getenv("BRAND_NAME", "Summit Home Services")
-TRADE = os.getenv("BRAND_TRADE", "plumbing & HVAC")
-TAGLINE = os.getenv("BRAND_TAGLINE", "Plumbing & HVAC · Nevada, MO")
-DEMO_LABEL = os.getenv("BRAND_DEMO_LABEL", "")
+# Vercel/serverless: code dir is read-only, only /tmp is writable
+LEADS = Path(os.getenv("LEADS_DIR") or ("/tmp/leads" if os.getenv("VERCEL") else BASE / "leads")); LEADS.mkdir(parents=True, exist_ok=True)
+BRAND = os.getenv("BRAND_NAME", "Bates Plumbing")
+TRADE = os.getenv("BRAND_TRADE", "plumbing")
+TAGLINE = os.getenv("BRAND_TAGLINE", "Plumbing · Nevada, MO")
+DEMO_LABEL = os.getenv("BRAND_DEMO_LABEL", "Demo — sample photo-quote tool built for Bates Plumbing")
 MODEL = os.getenv("GEMINI_MODEL", "gemini-flash-latest")
 log = logging.getLogger("triage")
 app = FastAPI(title="Photo Triage")
-MAX_UPLOAD = int(os.getenv("MAX_UPLOAD_BYTES", str(8 * 1024 * 1024)))
+MAX_UPLOAD = int(os.getenv("MAX_UPLOAD_BYTES", str((4 if os.getenv("VERCEL") else 8) * 1024 * 1024)))  # Vercel body cap is 4.5MB
 RATE_LIMIT = int(os.getenv("RATE_LIMIT_PER_HOUR", "10"))
 _hits = defaultdict(deque); _lock = threading.Lock()
 
@@ -79,10 +80,10 @@ def health(): return {"ok": True, "mode": mode(), "webhook": bool(os.getenv("MAK
 @app.post("/api/triage")
 async def triage(request: Request, name: str = Form(...), phone: str = Form(...), description: str = Form(""), photo: UploadFile = File(...)):
     cl = request.headers.get("content-length")
-    if cl and cl.isdigit() and int(cl) > MAX_UPLOAD + 100_000: raise HTTPException(413, "Photo too large (8MB max)")
+    if cl and cl.isdigit() and int(cl) > MAX_UPLOAD + 100_000: raise HTTPException(413, f"Photo too large ({MAX_UPLOAD // (1024*1024)}MB max)")
     img = await photo.read(MAX_UPLOAD + 1)
     if not img: raise HTTPException(400, "Empty photo")
-    if len(img) > MAX_UPLOAD: raise HTTPException(413, "Photo too large (8MB max)")
+    if len(img) > MAX_UPLOAD: raise HTTPException(413, f"Photo too large ({MAX_UPLOAD // (1024*1024)}MB max)")
     check_rate(client_ip(request))
     m = mode()
     try:
